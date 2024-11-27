@@ -1,0 +1,24 @@
+# Data processing and handling
+pandas
+requests
+
+# Snowflake connection
+snowflake-connector-python[pandas]
+snowflake-snowpark-python
+
+# NLP and machine learning
+vaderSentiment
+transformers
+scikit-learn
+
+# Visualization and analysis
+seaborn
+matplotlib
+scipy
+
+# Environment management
+python-dotenv
+
+# Email notifications
+smtplib
+email

@@ -1,0 +1,7 @@
+version: 2
+sources:
+  - name: app_log
+    database: BLOG
+    schema: PREDICTION
+    tables:
+      - name: application_log_data
