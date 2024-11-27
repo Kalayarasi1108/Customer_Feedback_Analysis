@@ -18,7 +18,3 @@ scipy
 
 # Environment management
 python-dotenv
-
-# Email notifications
-smtplib
-email
