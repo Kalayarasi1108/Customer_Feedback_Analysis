@@ -1,5 +1,5 @@
 WITH raw_feedback AS (
-    SELECT * FROM {{ ref('application_log_data') }}  
+    SELECT * FROM {{ source ('app_log', 'application_log_data')}} 
 ),
 
 aggregated_feedback AS (

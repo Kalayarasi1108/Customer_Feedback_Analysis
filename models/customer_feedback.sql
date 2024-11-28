@@ -41,4 +41,4 @@ SELECT
     negative_feedback_count,
     neutral_feedback_count
 FROM
-    {{ ref('src_customer_feedback') }} 
+    {{ ref('stage_src_customer_feedback') }} 
