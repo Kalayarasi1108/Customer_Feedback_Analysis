@@ -13,7 +13,8 @@ def fetch_data_from_api(api_url):
 
 def insert_data_into_snowflake(cur, table_name, df):
     data_tuples = [tuple(x) for x in df.values]
-    columns = [f'"{col}"' for col in df.columns]
+    columns = [col.upper() for col in df.columns]  # Convert columns to uppercase to match Snowflake's default behavior
+    print(columns)
     placeholders = ', '.join(['%s'] * len(df.columns))
     cur.executemany(f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})", data_tuples)
     print(f"Successfully inserted {len(data_tuples)} records into {table_name}.")
@@ -23,12 +24,12 @@ def load_data_to_snowflake(api_url, table_name):
     if df is not None and not df.empty:
         try:
             snowflake_config = {
-                'user': os.environ['SNOWFLAKE_USER'],
-                'password': os.environ['SNOWFLAKE_PASSWORD'],
-                'account': os.environ['SNOWFLAKE_ACCOUNT'],
-                'warehouse': os.environ['SNOWFLAKE_WAREHOUSE'],
-                'database': os.environ['SNOWFLAKE_DATABASE'],
-                'schema': os.environ['SNOWFLAKE_SCHEMA']
+                'user': 'Krishna',
+                'password': 'Parthi@4120',
+                'account': 'mw22458.central-india.azure',
+                'warehouse': 'COMPUTE_WH',
+                'database': 'BLOG',
+                'schema': 'FEEDBACK_ANALYSIS'
             }
             with snowflake.connector.connect(**snowflake_config) as conn:
                 with conn.cursor() as cur:
