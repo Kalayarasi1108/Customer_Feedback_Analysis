@@ -2,6 +2,6 @@ version: 2
 sources:
   - name: app_log
     database: BLOG
-    schema: PREDICTION
+    schema: FEEDBACK_ANALYSIS
     tables:
       - name: application_log_data
