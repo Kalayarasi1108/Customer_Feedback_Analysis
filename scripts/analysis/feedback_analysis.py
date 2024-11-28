@@ -33,7 +33,7 @@ cursor = conn.cursor()
 # 🔍 Query to get customer_feedback table (focused on required columns)
 query = """
     SELECT customer_name, customer_email, customer_gender, customer_loyalty_program,
-           product_category, product_sub_category, product_name, product_rating, product_review_comments,
+           product_category, product_sub_category, product_name, product_rating, product_review_text,
            order_id, order_status, purchase_mode, payment_mode, discount_applied,
            avg_product_rating, total_orders, unique_customers, avg_sentiment_score, 
            positive_feedback_count, negative_feedback_count, neutral_feedback_count, 
@@ -65,7 +65,7 @@ def calculate_csi(sentiment_score, support_rating):
 # 🌈 Analyzing each row and calculating predictions
 results = []
 for index, row in df.iterrows():
-    review_text = row['product_review_comments']
+    review_text = row['product_review_text']
     
     # Sentiment analysis prediction
     sentiment_score = get_sentiment_score(review_text)
@@ -104,7 +104,7 @@ create_table_query = """
         product_sub_category STRING,
         product_name STRING,
         product_rating INT,
-        product_review_comments STRING,
+        product_review_text STRING,
         order_id STRING,
         order_status STRING,
         purchase_mode STRING,
@@ -137,7 +137,7 @@ for index, row in analysis_df.iterrows():
     insert_query = f"""
         INSERT INTO customer_feedback_analysis (
             customer_name, customer_email, customer_gender, customer_loyalty_program,
-            product_category, product_sub_category, product_name, product_rating, product_review_comments,
+            product_category, product_sub_category, product_name, product_rating, product_review_text,
             order_id, order_status, purchase_mode, payment_mode, discount_applied,
             avg_product_rating, total_orders, unique_customers, avg_sentiment_score, 
             positive_feedback_count, negative_feedback_count, neutral_feedback_count, 
@@ -146,7 +146,7 @@ for index, row in analysis_df.iterrows():
             sentiment_score, sentiment_category, customer_satisfaction_index
         ) VALUES (
             '{row['customer_name']}', '{row['customer_email']}', '{row['customer_gender']}', '{row['customer_loyalty_program']}',
-            '{row['product_category']}', '{row['product_sub_category']}', '{row['product_name']}', {row['product_rating']}, '{row['product_review_comments']}',
+            '{row['product_category']}', '{row['product_sub_category']}', '{row['product_name']}', {row['product_rating']}, '{row['product_review_text']}',
             '{row['order_id']}', '{row['order_status']}', '{row['purchase_mode']}', '{row['payment_mode']}', '{row['discount_applied']}',
             {row['avg_product_rating']}, {row['total_orders']}, {row['unique_customers']}, {row['avg_sentiment_score']}, 
             {row['positive_feedback_count']}, {row['negative_feedback_count']}, {row['neutral_feedback_count']}, 
