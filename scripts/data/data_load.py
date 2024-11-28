@@ -38,7 +38,7 @@ def load_data_to_snowflake(api_url, table_name):
             print(f"Error connecting to Snowflake: {e}")
 
 # API URL and table name
-api_url = "https://run.mocky.io/v3/f5f303a5-cebe-4ebc-bc4a-05a59870bb59"
+api_url = "https://run.mocky.io/v3/fa12b212-cb25-4c74-93be-0dfe943d32a9"
 table_name = "APPLICATION_LOG_DATA"
 
 if __name__ == "__main__":
