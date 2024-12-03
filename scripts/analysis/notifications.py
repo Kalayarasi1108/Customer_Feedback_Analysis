@@ -8,12 +8,12 @@ WEBHOOK_URL_TRAINING = os.environ['WEBHOOK_URL_TRAINING']
 
 # Connect to Snowflake (replace with your credentials)
 conn = snowflake.connector.connect(
-                'user': os.environ['SNOWFLAKE_USER'],
-                'password': os.environ['SNOWFLAKE_PASSWORD'],
-                'account': os.environ['SNOWFLAKE_ACCOUNT'],
-                'warehouse': os.environ['SNOWFLAKE_WAREHOUSE'],
-                'database': os.environ['SNOWFLAKE_DATABASE'],
-                'schema': os.environ['SNOWFLAKE_SCHEMA']
+    user=os.environ['SNOWFLAKE_USER'],
+    password=os.environ['SNOWFLAKE_PASSWORD'],
+    account=os.environ['SNOWFLAKE_ACCOUNT'],
+    warehouse=os.environ['SNOWFLAKE_WAREHOUSE'],
+    database=os.environ['SNOWFLAKE_DATABASE'],
+    schema=os.environ['SNOWFLAKE_SCHEMA']
 )
 
 # Fetch the data from Snowflake (replace with your actual query)
