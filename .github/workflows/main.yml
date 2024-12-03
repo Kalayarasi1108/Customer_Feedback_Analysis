@@ -5,70 +5,45 @@ on:
     branches:
       - main
 
+env: 
+  SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+  SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+  SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+  SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+  SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+  SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+
 jobs:
   data_load:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code 🗂️
+      - name: Checkout code
         uses: actions/checkout@v2
-        
-      - name: Set up Python 🐍
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.10'
-
-      - name: Check directory structure
-        run: |
-          echo "📂 Checking directory structure..."
-          ls -R
-          echo "✅ Directory structure checked."
-
       - name: Install dependencies
-        run: |
-          echo "🔧 Installing dependencies..."
-          pip install -r ./scripts/analysis/requirements.txt
-          echo "✅ Dependencies installed."
-
+        run: pip install -r ./scripts/analysis/requirements.txt
       - name: Run data load script
-        run: |
-          echo "📊 Running data load script..."
-          python scripts/data/data_load.py 
-          echo "✅ Data load script executed successfully."
-        env:
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
-          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
-          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+        run: python scripts/data/data_load.py
 
   dbt_build:
     runs-on: ubuntu-latest
     needs: data_load
     steps:
-      - name: Checkout code 📂
+      - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Set up Python 🐍
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.10'
-
-      - name: Install dbt dependencies 📦
+      - name: Install dbt dependencies
+        run: pip install dbt-snowflake
+      - name: Run dbt deps
+        run: dbt deps
+      - name: Create dbt profiles.yml
         run: |
-          echo "🔧 Installing dbt dependencies..."
-          pip install dbt-snowflake
-          echo "✅ dbt dependencies installed."
-
-      - name: Install dbt dependencies with dbt deps 🛠️
-        run: |
-          echo "🔧 Running dbt deps..."
-          dbt deps
-          echo "✅ dbt deps completed."
-
-      - name: Create dbt profiles.yml 📝
-        run: |
-          echo "📝 Creating dbt profiles.yml..."
           mkdir -p ~/.dbt
           echo "sales_app:" > ~/.dbt/profiles.yml
           echo "  target: dev" >> ~/.dbt/profiles.yml
@@ -82,57 +57,25 @@ jobs:
           echo "      warehouse: '${{ secrets.SNOWFLAKE_WAREHOUSE }}'" >> ~/.dbt/profiles.yml
           echo "      database: '${{ secrets.SNOWFLAKE_DATABASE }}'" >> ~/.dbt/profiles.yml
           echo "      schema: '${{ secrets.SNOWFLAKE_SCHEMA }}'" >> ~/.dbt/profiles.yml
-          echo "✅ dbt profiles.yml created."
-
-      - name: Run dbt build 🚀
-        run: |
-          echo "🚀 Running dbt build..."
-          dbt build
-          echo "✅ dbt build completed."
+      - name: Run dbt build
+        run: dbt build
 
   feedback_analysis:
     runs-on: ubuntu-latest
     needs: dbt_build
     steps:
-      - name: Checkout code 📂
+      - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Set up Python 🐍
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.10'
-
-      - name: Install dependencies for notebook
-        run: |
-          echo "🔧 Installing notebook dependencies..."
-          pip install -r ./scripts/analysis/requirements.txt
-          echo "✅ Notebook dependencies installed."
-
-      - name: Run Snowflake notebook script 🎯
-        run: |
-          echo "🎯 Running Snowflake notebook script..."
-          python scripts/analysis/feedback_analysis.py
-          echo "✅ Snowflake notebook script executed."
-
-        env:
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
-          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
-          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
-
-      - name: Send teams Notifications 📧
-        run: |
-          echo "📢 Sending email notifications..."
-          python ./scripts/analysis/notifications.py 
-          echo "🎉 Email notifications sent successfully."
+      - name: Install notebook dependencies
+        run: pip install -r ./scripts/analysis/requirements.txt
+      - name: Run Snowflake notebook script
+        run: python scripts/analysis/feedback_analysis.py
+      - name: Send Teams Notifications
+        run: python ./scripts/analysis/notifications.py
         env:
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
           WEBHOOK_URL_TRAINING: ${{ secrets.WEBHOOK_URL_TRAINING }}
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
-          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
-          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
