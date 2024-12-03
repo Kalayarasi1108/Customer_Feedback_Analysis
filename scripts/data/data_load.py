@@ -24,12 +24,12 @@ def load_data_to_snowflake(api_url, table_name):
     if df is not None and not df.empty:
         try:
             snowflake_config = {
-                'user': 'Krishna',
-                'password': 'Parthi@4120',
-                'account': 'mw22458.central-india.azure',
-                'warehouse': 'COMPUTE_WH',
-                'database': 'BLOG',
-                'schema': 'FEEDBACK_ANALYSIS'
+                'user': os.environ['SNOWFLAKE_USER'],
+                'password': os.environ['SNOWFLAKE_PASSWORD'],
+                'account': os.environ['SNOWFLAKE_ACCOUNT'],
+                'warehouse': os.environ['SNOWFLAKE_WAREHOUSE'],
+                'database': os.environ['SNOWFLAKE_DATABASE'],
+                'schema': os.environ['SNOWFLAKE_SCHEMA']
             }
             with snowflake.connector.connect(**snowflake_config) as conn:
                 with conn.cursor() as cur:

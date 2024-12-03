@@ -1,171 +1,104 @@
-import os
-import snowflake.connector
-import pandas as pd
+import os, time, pandas as pd, nltk, snowflake.connector
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-from transformers import pipeline
-from datetime import datetime
-from sklearn.metrics import accuracy_score
+from concurrent.futures import ThreadPoolExecutor
 
-# 🌟 Connect to Snowflake
-snowflake_config = {
-    'user': os.getenv('SNOWFLAKE_USER'),
-    'password': os.getenv('SNOWFLAKE_PASSWORD'),
-    'account': os.getenv('SNOWFLAKE_ACCOUNT'),
-    'warehouse': os.getenv('SNOWFLAKE_WAREHOUSE'),
-    'database': os.getenv('SNOWFLAKE_DATABASE'),
-    'schema': os.getenv('SNOWFLAKE_SCHEMA')
-}
+# Initialize libraries and connections
+nltk.download("vader_lexicon")
 
-# Create Snowflake connection
+# Snowflake connection details
 conn = snowflake.connector.connect(
-    user=snowflake_config['user'],
-    password=snowflake_config['password'],
-    account=snowflake_config['account'],
-    warehouse=snowflake_config['warehouse'],
-    database=snowflake_config['database'],
-    schema=snowflake_config['schema']
+    user=os.environ['SNOWFLAKE_USER'],
+    password=os.environ['SNOWFLAKE_PASSWORD'],
+    account=os.environ['SNOWFLAKE_ACCOUNT'],
+    warehouse=os.environ['SNOWFLAKE_WAREHOUSE'],
+    database=os.environ['SNOWFLAKE_DATABASE'],
+    schema=os.environ['SNOWFLAKE_SCHEMA']
 )
-print("✅ - Successfully connected to Snowflake.")
 
-# Create a cursor object to execute SQL queries
+print("✅ - Connected to Snowflake.")
 cursor = conn.cursor()
 
-# 🔍 Query to get customer_feedback table (focused on required columns)
-query = """
-    SELECT customer_name, customer_email, customer_gender, customer_loyalty_program,
-           product_category, product_sub_category, product_name, product_rating, product_review_text,
-           order_id, order_status, purchase_mode, payment_mode, discount_applied,
-           avg_product_rating, total_orders, unique_customers, avg_sentiment_score, 
-           positive_feedback_count, negative_feedback_count, neutral_feedback_count, 
-           follow_up_required, feedback_date, feedback_category, feedback_sub_category, 
-           sentiment, customer_sentiment_score, customer_support_rating, resolution_status
-    FROM customer_feedback
-"""
-cursor.execute(query)
-df = cursor.fetch_pandas_all()
+# Step 1: Fetch source table schema
+cursor.execute("""
+    SELECT COLUMN_NAME, DATA_TYPE 
+    FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_NAME = 'CUSTOMER_FEEDBACK'
+    ORDER BY ORDINAL_POSITION
+""")
+source_schema = cursor.fetchall()
 
-# 🧠 Initialize Sentiment Analyzer (VADER)
-analyzer = SentimentIntensityAnalyzer()
+# Define new columns
+new_columns = [
+    ("SENTIMENT_SCORE", "FLOAT"),
+    ("SENTIMENT_CATEGORY", "VARCHAR(50)"),
+    ("CUSTOMER_SATISFACTION_INDEX", "FLOAT"),
+]
 
-# 💬 Intent Classification using Hugging Face BART zero-shot classification
-classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+# Combine source and new columns in correct order
+full_schema = source_schema + new_columns
 
-# Function to perform sentiment analysis 🎯
-def get_sentiment_score(review_text):
-    sentiment = analyzer.polarity_scores(review_text)
-    return sentiment['compound']  # Returns the compound sentiment score
-
-# 💡 Calculate Customer Satisfaction Index (CSI) in percentage
-def calculate_csi(sentiment_score, support_rating):
-    sentiment_index = ((sentiment_score + 1) / 2) * 50  # Scaling sentiment score to percentage
-    support_index = (support_rating / 5) * 50  # Scaling support rating to percentage
-    csi = sentiment_index + support_index
-    return csi
-
-# 🌈 Analyzing each row and calculating predictions
-results = []
-for index, row in df.iterrows():
-    review_text = row['product_review_text']
-    
-    # Sentiment analysis prediction
-    sentiment_score = get_sentiment_score(review_text)
-    
-    # Classify sentiment
-    if sentiment_score >= 0.5:
-        sentiment_category = 'Positive'
-    elif sentiment_score <= -0.5:
-        sentiment_category = 'Negative'
-    else:
-        sentiment_category = 'Neutral'
-    
-    # Calculate Customer Satisfaction Index (CSI)
-    csi = calculate_csi(sentiment_score, row['customer_support_rating'])
-    
-    # Dynamically append all the columns from the source data plus analysis results
-    analysis_row = row.to_dict()  # Convert row to dictionary
-    analysis_row.update({
-        'sentiment_score': sentiment_score,
-        'sentiment_category': sentiment_category,
-        'customer_satisfaction_index': csi
-    })
-    results.append(analysis_row)
-
-# 🌐 Convert results to DataFrame
-analysis_df = pd.DataFrame(results)
-
-# 🛠 Create the customer_feedback_analysis table in Snowflake dynamically
-create_table_query = """
-    CREATE OR REPLACE TABLE customer_feedback_analysis (
-        customer_name STRING,
-        customer_email STRING,
-        customer_gender STRING,
-        customer_loyalty_program STRING,
-        product_category STRING,
-        product_sub_category STRING,
-        product_name STRING,
-        product_rating INT,
-        product_review_text STRING,
-        order_id STRING,
-        order_status STRING,
-        purchase_mode STRING,
-        payment_mode STRING,
-        discount_applied STRING,
-        avg_product_rating FLOAT,
-        total_orders INT,
-        unique_customers INT,
-        avg_sentiment_score FLOAT,
-        positive_feedback_count INT,
-        negative_feedback_count INT,
-        neutral_feedback_count INT,
-        follow_up_required STRING,
-        feedback_date DATE,
-        feedback_category STRING,
-        feedback_sub_category STRING,
-        sentiment STRING,
-        customer_sentiment_score FLOAT,
-        customer_support_rating INT,
-        resolution_status STRING,
-        sentiment_score FLOAT,
-        sentiment_category STRING,
-        customer_satisfaction_index FLOAT
-    )
+# Step 2: Dynamically create the target table with the correct column order
+create_table_query = f"""
+CREATE OR REPLACE TABLE CUSTOMER_FEEDBACK_ANALYSIS (
+    {', '.join([f"{col[0]} {col[1]}" for col in full_schema])}
+)
 """
 cursor.execute(create_table_query)
 
-# 💾 Insert the analysis data into the customer_feedback_analysis table
-for index, row in analysis_df.iterrows():
-    insert_query = f"""
-        INSERT INTO customer_feedback_analysis (
-            customer_name, customer_email, customer_gender, customer_loyalty_program,
-            product_category, product_sub_category, product_name, product_rating, product_review_text,
-            order_id, order_status, purchase_mode, payment_mode, discount_applied,
-            avg_product_rating, total_orders, unique_customers, avg_sentiment_score, 
-            positive_feedback_count, negative_feedback_count, neutral_feedback_count, 
-            follow_up_required, feedback_date, feedback_category, feedback_sub_category, 
-            sentiment, customer_sentiment_score, customer_support_rating, resolution_status,
-            sentiment_score, sentiment_category, customer_satisfaction_index
-        ) VALUES (
-            '{row['customer_name']}', '{row['customer_email']}', '{row['customer_gender']}', '{row['customer_loyalty_program']}',
-            '{row['product_category']}', '{row['product_sub_category']}', '{row['product_name']}', {row['product_rating']}, '{row['product_review_text']}',
-            '{row['order_id']}', '{row['order_status']}', '{row['purchase_mode']}', '{row['payment_mode']}', '{row['discount_applied']}',
-            {row['avg_product_rating']}, {row['total_orders']}, {row['unique_customers']}, {row['avg_sentiment_score']}, 
-            {row['positive_feedback_count']}, {row['negative_feedback_count']}, {row['neutral_feedback_count']}, 
-            '{row['follow_up_required']}', '{row['feedback_date']}', '{row['feedback_category']}', '{row['feedback_sub_category']}',
-            '{row['sentiment']}', {row['customer_sentiment_score']}, {row['customer_support_rating']}, '{row['resolution_status']}',
-            {row['sentiment_score']}, '{row['sentiment_category']}', {row['customer_satisfaction_index']}
-        )
-    """
-    cursor.execute(insert_query)
+# Step 3: Fetch data from source table
+start_time = time.time()
+query = """
+    SELECT * FROM CUSTOMER_FEEDBACK
+"""
+df = cursor.execute(query).fetch_pandas_all()
+print(f"✅ - Fetched {len(df)} records in {time.time() - start_time:.2f}s.")
 
-# 💾 Commit and close the connection
+# Initialize sentiment analysis model
+analyzer = SentimentIntensityAnalyzer()
+
+# Step 4: Perform sentiment and satisfaction analysis with adjusted thresholds
+def analyze(row):
+    sentiment = analyzer.polarity_scores(row["PRODUCT_REVIEW_TEXT"])
+    sentiment_score = sentiment["compound"]
+    
+    # Adjust the sentiment threshold for better categorization
+    if sentiment_score >= 0.1:
+        sentiment_category = "Positive"
+    elif sentiment_score <= -0.1:
+        sentiment_category = "Negative"
+    else:
+        sentiment_category = "Neutral"
+    
+    csi = ((sentiment_score + 1) / 2) * 50 + (row["CUSTOMER_SUPPORT_RATING"] / 5) * 50
+    return sentiment_score, sentiment_category, csi
+
+print("⚡ - Starting sentiment and satisfaction index calculation...")
+start_time = time.time()
+with ThreadPoolExecutor(max_workers=4) as executor:
+    results = list(executor.map(analyze, df.to_dict("records")))
+
+df[["SENTIMENT_SCORE", "SENTIMENT_CATEGORY", "CUSTOMER_SATISFACTION_INDEX"]] = pd.DataFrame(results)
+
+# Rescale sentiment score for accuracy calculation
+df["SENTIMENT_SCORE_SCALED"] = (df["SENTIMENT_SCORE"] + 1) * 2.5  # [-1,1] → [1,5]
+
+# Step 5: Insert data into Snowflake
+insert_columns = [col[0] for col in full_schema]
+data_records = df[insert_columns].values.tolist()
+
+insert_query = f"""
+    INSERT INTO CUSTOMER_FEEDBACK_ANALYSIS (
+        {', '.join(insert_columns)}
+    )
+    VALUES ({', '.join(['%s'] * len(insert_columns))})
+"""
+chunk_size = 1000
+for i in range(0, len(data_records), chunk_size):
+    cursor.executemany(insert_query, data_records[i:i + chunk_size])
 conn.commit()
+print("✅ - Data inserted successfully.")
+
+# Close connections
 cursor.close()
 conn.close()
-
-# Calculate Accuracy
-sentiment_accuracy = accuracy_score(true_sentiment, sentiment_predictions)
-intent_accuracy = accuracy_score(true_intent, intent_predictions)
-
-print(f"✅ Sentiment Accuracy: {sentiment_accuracy * 100:.2f}%")
-print(f"✅ Intent Accuracy: {intent_accuracy * 100:.2f}%")
-print("Customer Feedback Analysis table has been successfully created and populated! 🎉")
+print("✅ - Process complete.")

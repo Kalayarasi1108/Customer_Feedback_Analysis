@@ -10,6 +10,7 @@ snowflake-snowpark-python
 vaderSentiment
 transformers
 scikit-learn
+nltk
 
 # Visualization and analysis
 seaborn

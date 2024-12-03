@@ -33,6 +33,8 @@ SELECT
     feedback_text_length,
     customer_support_rating,
     resolution_status,
+    staff_name,
+    staff_email,
     avg_product_rating,
     total_orders,
     unique_customers,

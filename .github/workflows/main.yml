@@ -121,9 +121,6 @@ jobs:
           SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
-          EMAIL_USER: ${{ secrets.EMAIL_USER }}  # Email credentials
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}  # Email credentials
-          SHOP_OWNER_EMAIL: ${{ secrets.SHOP_OWNER_EMAIL }}  # Shop owner email
 
       - name: Send Email Notifications 📧
         run: |
@@ -131,9 +128,8 @@ jobs:
           python ./scripts/analysis/notifications.py 
           echo "🎉 Email notifications sent successfully."
         env:
-          EMAIL_USER: ${{ secrets.EMAIL_USER }}
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          SHOP_OWNER_EMAIL: ${{ secrets.SHOP_OWNER_EMAIL }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          WEBHOOK_URL_TRAINING: ${{ secrets.WEBHOOK_URL_TRAINING }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
           SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
