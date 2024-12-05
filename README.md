@@ -1,15 +1,36 @@
-Welcome to your new dbt project!
+**Application data - table format **
 
-### Using the starter project
-
-Try running the following commands:
-- dbt run
-- dbt test
-
-
-### Resources:
-- Learn more about dbt [in the docs](https://docs.getdbt.com/docs/introduction)
-- Check out [Discourse](https://discourse.getdbt.com/) for commonly asked questions and answers
-- Join the [chat](https://community.getdbt.com/) on Slack for live discussions and support
-- Find [dbt events](https://events.getdbt.com) near you
-- Check out [the blog](https://blog.getdbt.com/) for the latest news on dbt's development and best practices
+CREATE OR REPLACE TABLE APPLICATION_LOG_DATA (
+    customer_name VARCHAR(100),
+    customer_email VARCHAR(255),
+    customer_gender VARCHAR(10),
+    customer_age_group VARCHAR(10),
+    customer_loyalty_program VARCHAR(5),
+    product_category VARCHAR(50),
+    product_sub_category VARCHAR(50),
+    product_name VARCHAR(255),
+    product_rating INT,
+    product_review_text STRING,
+    product_return_status VARCHAR(5),
+    product_issue_type VARCHAR(50),
+    order_id VARCHAR(36),
+    order_status VARCHAR(20),
+    purchase_mode VARCHAR(20),
+    payment_mode VARCHAR(20),
+    discount_applied VARCHAR(5),
+    store_location VARCHAR(50),
+    delivery_status VARCHAR(20),
+    order_fulfillment_time INT,
+    response_time INT,
+    follow_up_required VARCHAR(5),
+    feedback_date DATE,
+    feedback_category VARCHAR(50),
+    feedback_sub_category VARCHAR(50),
+    sentiment VARCHAR(10),
+    customer_sentiment_score FLOAT,
+    feedback_text_length INT,
+    customer_support_rating INT,
+    resolution_status VARCHAR(20),
+    staff_name VARCHAR(100),
+    staff_email VARCHAR(255)
+);
